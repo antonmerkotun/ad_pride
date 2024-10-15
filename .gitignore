@@ -4,3 +4,8 @@
 /uploads
 .volumes
 .idea
+.yarn
+.pnp.cjs
+.pnp.loader.mjs
+prisma/migrations/
+yarn.lock

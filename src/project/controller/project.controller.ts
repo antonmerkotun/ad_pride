@@ -1,8 +1,20 @@
-import { Controller, Get, Request, UseGuards } from '@nestjs/common';
-import { ProjectService } from '../service/project.service';
-import { AuthGuard } from '../../auth/guard/auth.guard';
-import { ProjectListResponse } from '../dto/project-list-response.dto';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { Project } from '@prisma/client';
+import { AuthGuard } from '../../auth/guard/auth.guard';
+import { ProjectService } from '../service/project.service';
+import { CreateDto, GetManyDto, UpdateDto } from '../dto';
 
 @UseGuards(AuthGuard)
 @Controller('project')
@@ -10,21 +22,40 @@ export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   @Get()
-  async list(@Request() req): Promise<ProjectListResponse> {
+  async list(
+    @Request() req,
+    @Query() query: GetManyDto.Query,
+  ): Promise<GetManyDto.Response> {
     const userId = req.user.sub as number;
+    return this.projectService.getMany({ userId, ...query });
+  }
 
-    const list: Project[] = await this.projectService.findMany({
-      where: { userId },
-    });
+  @Post()
+  async create(
+    @Request() req,
+    @Body() body: CreateDto.Body,
+  ): CreateDto.Response {
+    const userId = req.user.sub as number;
+    return this.projectService.create({ userId, ...body });
+  }
 
-    return list.map((x: Project) => ({
-      id: x.id,
-      name: x.name,
-      url: x.url,
-      status: x.status,
-      expiredAt: x.expiredAt,
-      createdAt: x.createdAt,
-      updatedAt: x.updatedAt,
-    }));
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: UpdateDto.Body,
+  ): UpdateDto.Response {
+    const projectId = parseInt(id, 10);
+    return this.projectService.update({ id: projectId, ...body });
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string): Promise<Project> {
+    const projectId = parseInt(id, 10);
+    return this.projectService.delete({ id: projectId });
+  }
+
+  @Cron('*/1 * * * *')
+  async checkExpiredProjects(): Promise<void> {
+    this.projectService.checkExpiredProjects();
   }
 }

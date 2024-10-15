@@ -1,4 +1,6 @@
-export type SignUpDto = {
-  username: string;
-  password: string;
-};
+export namespace SignUpDto {
+  export class Body {
+    username: string;
+    password: string;
+  }
+}
